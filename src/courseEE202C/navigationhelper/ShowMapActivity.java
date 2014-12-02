@@ -297,6 +297,7 @@ public class ShowMapActivity extends Activity {
 					ll.setBackgroundDrawable(new BitmapDrawable(bg));
 					
 					//resultField.append(n);
+					
 				} catch (JSONException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
