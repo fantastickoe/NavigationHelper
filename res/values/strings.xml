@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NavigationHelper</string>
+    <string name="action_settings">Settings</string>
+    <string name="button1_text">Read</string>
+    <string name="button2_text">0</string>
+    <string name="button3_text">list</string>
+    <string name="button4_text">create feed</string>
+    
+</resources>
