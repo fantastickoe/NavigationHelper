@@ -2,6 +2,9 @@ package courseEE202C.navigationhelper;
 
 
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -17,6 +20,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
@@ -33,6 +37,10 @@ import com.xively.android.service.IHttpService;
 import com.xively.android.service.Response;
 
 public class ShowMapActivity extends Activity {
+	Timer timer;
+	TimerTask timerTask;
+	final Handler handler= new Handler();
+	
 	private static final String TAG = "ShowMapActivity";
 	IHttpService service;
 	HttpServiceConnection connection;
@@ -51,6 +59,35 @@ public class ShowMapActivity extends Activity {
 	private final String myNewDatapoint = "{ \"datapoints\":[ {\"at\":\"2010-05-20T11:01:43Z\",\"value\":\"294\"} ] }";
 	private final String myNewDatapoint1 = "{ \"datapoints\": \"current_value\" : \"400\" }";
 
+	@Override
+	protected void onResume() {
+
+		super.onResume();
+		startTimer();
+
+	}
+	
+	public void startTimer() {
+		//set a new Timer
+		timer = new Timer();
+
+		//initialize the TimerTask's job
+		initializeTimerTask();
+
+		//schedule the timer, after the first 5000ms the TimerTask will run every 1000ms
+		timer.schedule(timerTask, 5000, 1000); //
+	}
+	
+	public void stoptimertask(View v) {
+		//stop the timer, if it's not already null
+		if (timer != null) {
+			timer.cancel();
+			timer = null;
+		}
+	}
+	
+	
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -207,16 +244,125 @@ public class ShowMapActivity extends Activity {
 		
 	}
 
+	public void initializeTimerTask(){
+		timerTask=new TimerTask(){
+			public void run(){
+				handler.post(new Runnable() {
+					public void run() {
+						// TODO Auto-generated method stub
+						TextView resultField = (TextView) findViewById(R.id.textView1);
+						Response response = null;
+						try
+						{
+							//JSONObject JO=new JSONObject();
+							
+							
+							response = service.getDatastream(myFeedId, myDatastreamId);
+						} catch (RemoteException e)
+						{
+							Log.e(ShowMapActivity.TAG, "onClick failed", e);
+						}
+
+						if (response != null)
+						{
+							try {
+								JSONObject J=new JSONObject(response.getContent());
+								String J1=J.getString("current_value");
+								JSONObject result=new JSONObject(J1);
+								int n=Integer.parseInt(result.getString("number"));
+								JSONArray data=new JSONArray(result.getString("data"));
+								if(n<=1){
+									Log.e(ShowMapActivity.TAG, "number too small");
+								}
+								
+								Paint green=new Paint();
+								green.setColor(Color.rgb(0x99, 0xcc, 0));
+								
+								float width=(float) 1.8;
+								float height=(float) 3;
+								
+								Paint paint = new Paint();
+								paint.setColor(Color.parseColor("#CD5C5C"));
+								Paint black=new Paint();
+								black.setColor(Color.rgb(0, 0, 0));
+								Bitmap bg = Bitmap.createBitmap(480, 800, Bitmap.Config.ARGB_8888);
+								Canvas canvas = new Canvas(bg); 
+								//canvas.drawCircle(200, 200, 200, green);
+								//canvas.drawCircle(200, 200, 200, red);
+								canvas.drawRect(0, 0, 9*width, 226*height, paint); 
+								canvas.drawRect(0, 14*height, 264*width, 23*height, paint); 
+								canvas.drawRect(228*width, 14*height, 237*width, 226*height, paint); 
+								canvas.drawRect(0, 197*height, 237*width, 206*height, paint); 
+								canvas.drawRect(228*width, 209*height, 264*width, 218*height, paint); 
+								//hallway
+								canvas.drawRect(107*width, 183*height, 130*width, 219*height, paint); 
+								
+								//classroom left
+								canvas.drawRect(11*width, 208*height, 33*width, 236*height, paint);
+								canvas.drawRect(0*width, 218*height, 33*width, 220*height, paint);
+								canvas.drawRect(14*width, 200*height, 16*width, 208*height, paint);
+								//classroom right
+								canvas.drawRect(179*width, 208*height, 202*width, 231*height, paint);
+								canvas.drawRect(181*width, 205*height, 183*width, 209*height, paint);
+								canvas.drawRect(198*width, 205*height, 200*width, 209*height, paint);
+								
+								for (int i=0;i<n-1;i++){
+									JSONObject coord1=(JSONObject) data.get(i);
+									JSONObject coord2=(JSONObject) data.get(i+1);
+									
+									resultField.setText(result.getString("number"));
+									Log.v("ShowMapActivity", "begin drawing");
+									
+									Integer x1=Integer.parseInt(coord1.getString("x"));
+									Integer y1=237-Integer.parseInt(coord1.getString("y"));
+									Integer x2=Integer.parseInt(coord2.getString("x"));
+									Integer y2=237-Integer.parseInt(coord2.getString("y"));
+									
+									Log.v("ShowMapActivity", x1.toString());
+									Log.v("ShowMapActivity", x2.toString());
+									Log.v("ShowMapActivity", y1.toString());
+									Log.v("ShowMapActivity", y2.toString());
+									//canvas.drawCircle(200, 200, 200, green);
+									canvas.drawRect(x1*width, y1*height, (x2+2)*width, (y2-2)*height, green);
+									if(i==0){
+										canvas.drawCircle(x1*width, y1*height, 5, black);
+									}
+									if(i==n-2){
+										canvas.drawCircle(x2*width, y2*height, 5, black);
+									}
+									//canvas.drawCircle(x2*width, y2*height, 2, black);
+									//canvas.drawLine(x1*width, y1*height, x2*width, y2*height, green);
+									//canvas.drawRect(0, 14*height, 264*width, 23*height, green);
+									
+								}
+								LinearLayout ll = (LinearLayout) findViewById(R.id.ll1);
+								ll.setBackgroundDrawable(new BitmapDrawable(bg));
+								
+								//resultField.append(n);
+								
+							} catch (JSONException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+							
+							
+						
+					}
+					}
+					
+				});
+			}
+		};
+	}
+	
+	
+	
 	class commlistener implements OnClickListener{
 
 		
 		
 		@Override
 		public void onClick(View v) {
-			
-			
-			
-			
 			// TODO Auto-generated method stub
 			TextView resultField = (TextView) findViewById(R.id.textView1);
 			Response response = null;
@@ -250,6 +396,8 @@ public class ShowMapActivity extends Activity {
 					
 					Paint paint = new Paint();
 					paint.setColor(Color.parseColor("#CD5C5C"));
+					Paint black=new Paint();
+					black.setColor(Color.rgb(0, 0, 0));
 					Bitmap bg = Bitmap.createBitmap(480, 800, Bitmap.Config.ARGB_8888);
 					Canvas canvas = new Canvas(bg); 
 					//canvas.drawCircle(200, 200, 200, green);
@@ -289,6 +437,13 @@ public class ShowMapActivity extends Activity {
 						Log.v("ShowMapActivity", y2.toString());
 						//canvas.drawCircle(200, 200, 200, green);
 						canvas.drawRect(x1*width, y1*height, (x2+2)*width, (y2-2)*height, green); 
+						if(i==0){
+							canvas.drawCircle(x1*width, y1*height, 5, black);
+						}
+						if(i==n-2){
+							canvas.drawCircle(x2*width, y2*height, 5, black);
+						}
+						//canvas.drawCircle(x2*width, y2*height, 2, black);
 						//canvas.drawLine(x1*width, y1*height, x2*width, y2*height, green);
 						//canvas.drawRect(0, 14*height, 264*width, 23*height, green);
 						
@@ -304,8 +459,8 @@ public class ShowMapActivity extends Activity {
 				}
 				
 				
-				
-			}
+			
+		}
 		}
 		
 	}
